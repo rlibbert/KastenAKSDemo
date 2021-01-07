@@ -1,0 +1,125 @@
+#This HOWTO will install Kasten and Kafka in order to demo Kastens Backup/resorre and DR functionality in AKS
+#Run the preflight check. 
+
+curl https://docs.kasten.io/tools/k10_primer.sh | bash
+
+#Add the Kasten Helm repo:
+
+ helm repo add kasten https://charts.kasten.io/
+
+ #Create a namespace for the install:
+
+ kubectl create namespace kasten-io
+
+
+
+
+#Get the tenantID, SP client ID and SP clientID secret.
+
+#Get this from Azure Active Directory or use:
+az account show --subscription "MySubscriptionName" --query tenantId --output tsv
+
+
+#tenantID = 72f988bf-86f1-41af-91ab-2d7cd011db47
+
+#Get SPClient ID:
+
+az aks show --name $AKS_CLUSTER_NAME --resource-group $AKS_CLUSTER_RESOURCE_GROUP --query servicePrincipalProfile.clientId -o tsv
+
+#Service Princpal Client ID: da9e4d24-fc89-4615-b832-acbcbcbe1a43
+
+#Go create a client ID/Secret for the service Principal in AAD / App registrations
+#----Rob's Testing Credentials----
+#Secret: 3feee15f************
+#CID: 968cc8ae-76af-4e23-a412-2880583f2b55
+
+
+#Set env variables and execute:
+helm install k10 kasten/k10 --namespace=kasten-io \
+    --set secrets.azureTenantId=<tenantID> \
+    --set secrets.azureClientId=<azureclient_id> \
+    --set secrets.azureClientSecret=<azureclientsecret>
+
+#    Validate the instalation:
+
+    kubectl get pods --namespace kasten-io --watch
+
+#Forward a local port to the K10 Ingresss Port:
+kubectl --namespace kasten-io port-forward service/gateway 8080:8000
+
+#You can now access the GUI here:
+http://127.0.0.1:8080/k10/#/
+
+#Now let's get kafka up and running - 3 Kafka nodes, 3 Zookeepers.  This will give us something to backup and restore.
+
+#add helm chart repo for Strimzi
+helm repo add strimzi https://strimzi.io/charts/
+
+#install it
+helm install strimzi-kafka strimzi/strimzi-kafka-operator
+
+#confirm the operater has been deployed:
+kubectl get pods -l=name=strimzi-cluster-operator
+
+#here's your example yaml for the resource file:
+
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-tls-cluster
+spec:
+  kafka:
+    version: 2.2.1
+    replicas: 3
+    listeners:
+      tls:
+        authentication:
+          type: tls
+    config:
+      log.message.format.version: "2.2"
+      ssl.client.auth: "required"
+    tlsSidecar:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 64Mi
+        limits:
+          cpu: 500m
+          memory: 128Mi
+    storage:
+      type: jbod
+      volumes:
+      - id: 0
+        class: managed-premium
+        type: persistent-claim
+        size: 64Gi
+        deleteClaim: false
+  zookeeper:
+    replicas: 3
+    storage:
+      type: persistent-claim
+      class: managed-premium
+      size: 32Gi
+      deleteClaim: false
+    tlsSidecar:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 64Mi
+        limits:
+          cpu: 500m
+          memory: 128Mi
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+
+#Apply.
+kubectl apply -f kafka.yaml
+
+#Validate
+kubectl get kafka
+
+#Should return:
+#
+#NAME             DESIRED KAFKA REPLICAS   DESIRED ZK REPLICAS
+#my-tls-cluster   3                        3
