@@ -1,4 +1,4 @@
-#This HOWTO will install Kasten and Kafka in order to demo Kastens Backup/resorre and DR functionality in AKS
+#This HOWTO will install Kasten and Kafka in order to demo Kastens Backup/restore and DR functionality in AKS
 #Run the preflight check. 
 
 curl https://docs.kasten.io/tools/k10_primer.sh | bash
@@ -20,18 +20,18 @@ curl https://docs.kasten.io/tools/k10_primer.sh | bash
 az account show --subscription "MySubscriptionName" --query tenantId --output tsv
 
 
-#tenantID = 72f988bf-86f1-41af-91ab-2d7cd011db47
+#tenantID = 72f988bf**************
 
 #Get SPClient ID:
 
 az aks show --name $AKS_CLUSTER_NAME --resource-group $AKS_CLUSTER_RESOURCE_GROUP --query servicePrincipalProfile.clientId -o tsv
 
-#Service Princpal Client ID: da9e4d24-fc89-4615-b832-acbcbcbe1a43
+#Service Princpal Client ID: da9e4d24****************
 
 #Go create a client ID/Secret for the service Principal in AAD / App registrations
 #----Rob's Testing Credentials----
 #Secret: 3feee15f************
-#CID: 968cc8ae-76af-4e23-a412-2880583f2b55
+#CID: 968cc8ae-76a***********
 
 
 #Set env variables and execute:
