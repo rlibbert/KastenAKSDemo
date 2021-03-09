@@ -1,5 +1,5 @@
 # KastenAKSDemo
-Steps to get Kasten running in your AKS cluster and a 3 node kafka instance to use as a model for backup and restore.
+Steps to get Kasten running in your AKS cluster.
 
 
 #Get this from Azure Active Directory or use:
@@ -22,6 +22,7 @@ Steps to get Kasten running in your AKS cluster and a 3 node kafka instance to u
 
 
 #Set env variables and execute:
+
     helm install k10 kasten/k10 --namespace=kasten-io \
         --set secrets.azureTenantId=<tenantID> \
         --set secrets.azureClientId=<azureclient_id> \
